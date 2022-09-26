@@ -446,6 +446,17 @@ func (a *application) apply(parent ast.Node, name string, iter *iterator, n ast.
 		for _, name := range names {
 			a.apply(n, name, nil, n.Files[name])
 		}
+	case *ast.GoxExpr:
+		a.apply(n, "TagName", nil, n.TagName)
+		a.applyList(n, "Attrs")
+		a.applyList(n, "X")
+		a.apply(n, "Ctag", nil, n.Ctag)
+	case *ast.GoExpr:
+		a.apply(n, "X", nil, n.X)
+	case *ast.GoxAttrStmt:
+		a.apply(n, "Rhs", nil, n.Rhs)
+	case *ast.BareWordsExpr:
+	case *ast.CtagExpr:
 
 	default:
 		panic(fmt.Sprintf("Apply: unexpected node type %T", n))

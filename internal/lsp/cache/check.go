@@ -550,7 +550,25 @@ func doTypeCheck(ctx context.Context, snapshot *snapshot, m *Metadata, mode sour
 
 	// Type checking errors are handled via the config, so ignore them here.
 	_ = check.Files(files)
-
+	if modHandle := snapshot.parseModHandles[snapshot.workspace.root+"/go.mod"]; modHandle != nil {
+		mod := modHandle.handle.Cached(snapshot.generation).(*parseModData).parsed.File.Module.Mod.Path
+		if strings.HasPrefix(string(m.PkgPath), mod) {
+			newAnalysisJsx(pkg).run()
+			pkg.typesInfo = &types.Info{
+				Types:      make(map[ast.Expr]types.TypeAndValue),
+				Defs:       make(map[*ast.Ident]types.Object),
+				Uses:       make(map[*ast.Ident]types.Object),
+				Implicits:  make(map[ast.Node]types.Object),
+				Selections: make(map[*ast.SelectorExpr]*types.Selection),
+				Scopes:     make(map[ast.Node]*types.Scope),
+			}
+			pkg.types = types.NewPackage(string(m.PkgPath), string(m.Name))
+			pkg.typeErrors = []types.Error{}
+			typeparams.InitInstanceInfo(pkg.typesInfo)
+			check = types.NewChecker(cfg, snapshot.FileSet(), pkg.types, pkg.typesInfo)
+			_ = check.Files(files)
+		}
+	}
 	// If the context was cancelled, we may have returned a ton of transient
 	// errors to the type checker. Swallow them.
 	if ctx.Err() != nil {
