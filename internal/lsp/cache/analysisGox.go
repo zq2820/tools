@@ -118,29 +118,29 @@ func (analysis *analysisJsx) analysisExpr(cursor *astutil.Cursor) bool {
 			Type: &ast.SelectorExpr{
 				X:   &ast.Ident{
 					Name: "react", 
-					NamePos: node.TagName.End() + 1,
+					NamePos: node.TagName.End(),
+					Hidden: true,
 				},
 				Sel: &ast.Ident{
 					Name: tagUpper + "Props",
-					NamePos: node.TagName.End() + 1,
+					NamePos: node.TagName.End(),
+					Hidden: true,
 				},
 			},
-			Lbrace: node.TagName.End() + 1,
+			Lbrace: node.TagName.End(),
 			Elts: []ast.Expr{},
 		}
 		props := &ast.UnaryExpr{
 			Op: token.AND,
 			X: propsDef,
-			OpPos: node.TagName.End(),
+			OpPos: node.TagName.End() - 2,
 		}
 
 		for _, attr := range node.Attrs {
 			propsDef.Elts = append(propsDef.Elts, &ast.KeyValueExpr{
-				Key: &ast.Ident{
-					Name: caseTitle.String(attr.Lhs.Name),
-					NamePos: attr.Lhs.NamePos,
-				},
+				Key: attr.Lhs,
 				Value: attr.Rhs,
+				Colon: attr.Lhs.End(),
 			})
 		}
 		if len(node.Attrs) > 0 {
@@ -153,6 +153,7 @@ func (analysis *analysisJsx) analysisExpr(cursor *astutil.Cursor) bool {
 			Fun: &ast.Ident{
 				Name: "make",
 				NamePos: propsDef.Rbrace,
+				Hidden: true,
 			},
 			Lparen: propsDef.Rbrace,
 			Args: []ast.Expr{
@@ -161,10 +162,12 @@ func (analysis *analysisJsx) analysisExpr(cursor *astutil.Cursor) bool {
 						X: &ast.Ident{
 							Name: "react",
 							NamePos: propsDef.Rbrace,
+							Hidden: true,
 						},
 						Sel: &ast.Ident{
 							Name: "Element",
 							NamePos: propsDef.Rbrace,
+							Hidden: true,
 						},
 					},
 				},
@@ -192,14 +195,15 @@ func (analysis *analysisJsx) analysisExpr(cursor *astutil.Cursor) bool {
 				childDef = goExpr.X
 			}
 
-			left := node.X[0].Pos()
+			// left := node.X[0].Pos()
 
 			children = &ast.CallExpr{
 				Fun: &ast.Ident{
 					Name: "append",
-					NamePos: left - token.Pos(i - 1),
+					NamePos: propsDef.Rbrace - token.Pos(i),
+					Hidden: true,
 				},
-				Lparen: left - token.Pos(i),
+				Lparen: propsDef.Rbrace - token.Pos(i),
 				Args: []ast.Expr{
 					children,
 					childDef,
@@ -212,14 +216,15 @@ func (analysis *analysisJsx) analysisExpr(cursor *astutil.Cursor) bool {
 			Fun: &ast.SelectorExpr{
 				X: &ast.Ident{
 					Name: "react", 
-					NamePos: node.Otag,
+					NamePos: node.Otag - 1,
+					Hidden: true,
 				},
 				Sel: &ast.Ident{
 					Name: tagUpper,
 					NamePos: node.Otag,
 				},
 			},
-			Lparen: node.Otag,
+			Lparen: node.Otag + 1,
 			Args: append([]ast.Expr{
 				props,
 			}, children),
@@ -288,10 +293,12 @@ func replaceGox(cursor *astutil.Cursor, expr ast.Expr, childType ChildType) {
 				X:   &ast.Ident{
 					Name: "react",
 					NamePos: cursor.Node().Pos(),
+					Hidden: true,
 				},
 				Sel: &ast.Ident{
 					Name: "S",
 					NamePos: cursor.Node().Pos(),
+					Hidden: true,
 				},
 			},
 			Lparen: cursor.Node().Pos(),
@@ -307,10 +314,12 @@ func replaceGox(cursor *astutil.Cursor, expr ast.Expr, childType ChildType) {
 				X:   &ast.Ident{
 					Name: "react",
 					NamePos: cursor.Node().Pos(),
+					Hidden: true,
 				},
 				Sel: &ast.Ident{
 					Name: "Sprintln",
 					NamePos: cursor.Node().Pos(),
+					Hidden: true,
 				},
 			},
 			Lparen: cursor.Node().Pos(),

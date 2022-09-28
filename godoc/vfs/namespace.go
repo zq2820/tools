@@ -317,7 +317,7 @@ func (ns NameSpace) ReadDir(path string) ([]os.FileInfo, error) {
 
 		if goDirIndex < 0 {
 			for _, f := range dir {
-				if !f.IsDir() && strings.HasSuffix(f.Name(), ".go") {
+				if !f.IsDir() && (strings.HasSuffix(f.Name(), ".go") || strings.HasSuffix(f.Name(), ".gox")) {
 					goDirIndex = len(dirs) - 1
 					break
 				}

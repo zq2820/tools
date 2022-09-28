@@ -182,7 +182,7 @@ func (w *walker) walk(path string, typ os.FileMode) error {
 			// directly in your $GOPATH/src or $GOROOT/src.
 			return fastwalk.ErrSkipFiles
 		}
-		if !strings.HasSuffix(path, ".go") {
+		if !strings.HasSuffix(path, ".go") && !strings.HasSuffix(path, ".gox") {
 			return nil
 		}
 

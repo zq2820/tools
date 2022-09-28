@@ -270,12 +270,12 @@ func (conf *Config) FromArgs(args []string, xtest bool) ([]string, error) {
 		}
 	}
 
-	if len(args) > 0 && strings.HasSuffix(args[0], ".go") {
+	if len(args) > 0 && (strings.HasSuffix(args[0], ".go") || strings.HasSuffix(args[0], ".gox")) {
 		// Assume args is a list of a *.go files
 		// denoting a single ad hoc package.
 		for _, arg := range args {
-			if !strings.HasSuffix(arg, ".go") {
-				return nil, fmt.Errorf("named files must be .go files: %s", arg)
+			if !strings.HasSuffix(arg, ".go") && !strings.HasSuffix(arg, ".gox")  {
+				return nil, fmt.Errorf("named files must be .go or .gox files: %s", arg)
 			}
 		}
 		conf.CreateFromFilenames("", args...)

@@ -346,7 +346,7 @@ func cmpRun(keepLog bool, cmd []string) (outfile string, match bool) {
 			cmdStash[i+1] += ".stash"
 			break
 		}
-		if strings.HasSuffix(arg, ".s") || strings.HasSuffix(arg, ".go") && '0' <= tool[0] && tool[0] <= '9' {
+		if strings.HasSuffix(arg, ".s") || strings.HasSuffix(arg, ".go") || strings.HasSuffix(arg, ".gox") && '0' <= tool[0] && tool[0] <= '9' {
 			outfile = filepath.Base(arg[:strings.LastIndex(arg, ".")] + "." + tool[:1])
 			cmdStash = append([]string{cmdStash[0], "-o", outfile + ".stash"}, cmdStash[1:]...)
 			break

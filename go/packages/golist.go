@@ -1145,7 +1145,7 @@ func (state *golistState) writeOverlays() (filename string, cleanup func(), err 
 
 func containsGoFile(s []string) bool {
 	for _, f := range s {
-		if strings.HasSuffix(f, ".go") {
+		if strings.HasSuffix(f, ".go") || strings.HasSuffix(f, ".gox") {
 			return true
 		}
 	}

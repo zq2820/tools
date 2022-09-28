@@ -38,7 +38,7 @@ func isGoFile(fi os.FileInfo) bool {
 	name := fi.Name()
 	return !fi.IsDir() &&
 		len(name) > 0 && name[0] != '.' && // ignore .files
-		pathpkg.Ext(name) == ".go"
+		(pathpkg.Ext(name) == ".go" || pathpkg.Ext(name) == ".gox")
 }
 
 func isPkgFile(fi os.FileInfo) bool {

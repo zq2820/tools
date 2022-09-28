@@ -585,7 +585,7 @@ func (p *Presentation) serveTextFile(w http.ResponseWriter, r *http.Request, abs
 	s := RangeSelection(r.FormValue("s"))
 
 	var buf bytes.Buffer
-	if pathpkg.Ext(abspath) == ".go" {
+	if pathpkg.Ext(abspath) == ".go" || pathpkg.Ext(abspath) == ".gox" {
 		// Find markup links for this file (e.g. "/src/fmt/print.go").
 		fi := p.Corpus.Analysis.FileInfo(abspath)
 		buf.WriteString("<script type='text/javascript'>document.ANALYSIS_DATA = ")
@@ -803,7 +803,11 @@ func (p *Presentation) serveFile(w http.ResponseWriter, r *http.Request) {
 	case ".go":
 		p.serveTextFile(w, r, abspath, relpath, "Source file")
 		return
+	case ".gox":
+		p.serveTextFile(w, r, abspath, relpath, "Source file")
+		return
 	}
+	
 
 	dir, err := p.Corpus.fs.Lstat(abspath)
 	if err != nil {

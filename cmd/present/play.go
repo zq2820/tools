@@ -83,7 +83,7 @@ func playable(c present.Code) bool {
 	// Restrict playable files to only Go source files when using play.golang.org,
 	// since there is no method to execute shell scripts there.
 	if *usePlayground {
-		return play && c.Ext == ".go"
+		return play && (c.Ext == ".go"  || c.Ext == ".gox")
 	}
 	return play
 }

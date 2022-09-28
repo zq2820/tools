@@ -187,6 +187,7 @@ func showFile(n string) bool {
 	case ".pdf":
 	case ".html":
 	case ".go":
+	case ".gox":
 	default:
 		return isDoc(n)
 	}

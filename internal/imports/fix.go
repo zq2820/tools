@@ -113,7 +113,7 @@ func parseOtherFiles(fset *token.FileSet, srcDir, filename string) []*ast.File {
 
 	var files []*ast.File
 	for _, fi := range packageFileInfos {
-		if fi.Name() == fileBase || !strings.HasSuffix(fi.Name(), ".go") {
+		if fi.Name() == fileBase || (!strings.HasSuffix(fi.Name(), ".go") && !strings.HasSuffix(fi.Name(), ".gox")) {
 			continue
 		}
 		if !considerTests && strings.HasSuffix(fi.Name(), "_test.go") {
@@ -1229,7 +1229,7 @@ func packageDirToName(dir string) (packageName string, err error) {
 	var lastErr error
 	var nfile int
 	for _, name := range names {
-		if !strings.HasSuffix(name, ".go") {
+		if !strings.HasSuffix(name, ".go") && !strings.HasSuffix(name, ".gox") {
 			continue
 		}
 		if strings.HasSuffix(name, "_test.go") {
@@ -1440,7 +1440,7 @@ func loadExportsFromFiles(ctx context.Context, env *ProcessEnv, dir string, incl
 	var files []os.FileInfo
 	for _, fi := range all {
 		name := fi.Name()
-		if !strings.HasSuffix(name, ".go") || (!includeTest && strings.HasSuffix(name, "_test.go")) {
+		if !strings.HasSuffix(name, ".go") || !strings.HasSuffix(name, ".gox") || (!includeTest && strings.HasSuffix(name, "_test.go")) {
 			continue
 		}
 		match, err := env.matchFile(dir, fi.Name())

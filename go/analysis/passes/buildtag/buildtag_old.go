@@ -40,7 +40,7 @@ func runBuildTag(pass *analysis.Pass) (interface{}, error) {
 		}
 	}
 	for _, name := range pass.IgnoredFiles {
-		if strings.HasSuffix(name, ".go") {
+		if strings.HasSuffix(name, ".go") || strings.HasSuffix(name, ".gox") {
 			f, err := parser.ParseFile(pass.Fset, name, nil, parser.ParseComments)
 			if err != nil {
 				// Not valid Go source code - not our job to diagnose, so ignore.

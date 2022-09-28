@@ -84,7 +84,7 @@ func parseFromFlag(ctxt *build.Context, fromFlag string) (*spec, error) {
 		return nil, fmt.Errorf("-from %q: invalid identifier specification (see -help for formats)", fromFlag)
 	}
 
-	if strings.HasSuffix(main, ".go") {
+	if strings.HasSuffix(main, ".go") || strings.HasSuffix(main, ".gox") {
 		// main is "filename.go"
 		if spec.searchFor == "" {
 			return nil, fmt.Errorf("-from: filename %q must have a ::name suffix", main)

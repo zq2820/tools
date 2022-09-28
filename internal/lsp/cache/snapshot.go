@@ -1806,7 +1806,7 @@ func (s *snapshot) clone(ctx, bgCtx context.Context, changes map[span.URI]*fileC
 		// because the file type that matters is not what the *client* tells us,
 		// but what the Go command sees.
 		var invalidateMetadata, pkgFileChanged, importDeleted bool
-		if strings.HasSuffix(uri.Filename(), ".go") {
+		if strings.HasSuffix(uri.Filename(), ".go") || strings.HasSuffix(uri.Filename(), ".gox") {
 			invalidateMetadata, pkgFileChanged, importDeleted = metadataChanges(ctx, s, originalFH, change.fileHandle)
 		}
 

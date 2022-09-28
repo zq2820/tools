@@ -70,7 +70,7 @@ func usage() {
 func isGoFile(f os.FileInfo) bool {
 	// ignore non-Go files
 	name := f.Name()
-	return !f.IsDir() && !strings.HasPrefix(name, ".") && strings.HasSuffix(name, ".go")
+	return !f.IsDir() && !strings.HasPrefix(name, ".") && (strings.HasSuffix(name, ".go") || strings.HasSuffix(name, ".gox"))
 }
 
 // argumentType is which mode goimports was invoked as.
@@ -122,7 +122,7 @@ func processFile(filename string, in io.Reader, out io.Writer, argType argumentT
 				return errors.New("-srcdir value can't be a file when passing multiple arguments or when walking directories")
 			}
 			target = *srcdir
-		} else if argType == singleArg && strings.HasSuffix(*srcdir, ".go") && !isDir(*srcdir) {
+		} else if argType == singleArg && (strings.HasSuffix(*srcdir, ".go") || strings.HasSuffix(*srcdir, ".gox")) && !isDir(*srcdir) {
 			// For a file which doesn't exist on disk yet, but might shortly.
 			// e.g. user in editor opens $DIR/newfile.go and newfile.go doesn't yet exist on disk.
 			// The goimports on-save hook writes the buffer to a temp file

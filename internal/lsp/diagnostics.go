@@ -476,7 +476,7 @@ func (s *Server) checkForOrphanedFile(ctx context.Context, snapshot source.Snaps
 		return nil
 	}
 	// If the file no longer has a name ending in .go, this diagnostic is wrong
-	if filepath.Ext(fh.URI().Filename()) != ".go" {
+	if filepath.Ext(fh.URI().Filename()) != ".go" && filepath.Ext(fh.URI().Filename()) != ".gox" {
 		return nil
 	}
 	// TODO(rstambler): We should be able to parse the build tags in the
@@ -621,7 +621,7 @@ func (s *Server) shouldIgnoreError(ctx context.Context, snapshot source.Snapshot
 		if err != nil {
 			return err
 		}
-		if !strings.HasSuffix(info.Name(), ".go") {
+		if !strings.HasSuffix(info.Name(), ".go") && !strings.HasSuffix(info.Name(), ".gox") {
 			return nil
 		}
 		hasGo = true

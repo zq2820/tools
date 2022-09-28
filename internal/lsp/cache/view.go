@@ -233,6 +233,8 @@ func (v *View) FileKind(fh source.FileHandle) source.FileKind {
 	switch fext {
 	case ".go":
 		return source.Go
+	case ".gox":
+		return source.Go
 	case ".mod":
 		return source.Mod
 	case ".sum":

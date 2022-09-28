@@ -690,6 +690,7 @@ var whitelisted = map[string]bool{
 	".cxx":         true,
 	".css":         true,
 	".go":          true,
+	".gox":					true,
 	".goc":         true,
 	".h":           true,
 	".hh":          true,
