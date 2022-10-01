@@ -82,7 +82,7 @@ func PathEnclosingInterval(root *ast.File, start, end token.Pos) (path []ast.Nod
 
 		// Find sole child that contains [start, end).
 		children := childrenOf(node)
-		l := len(children)
+		// l := len(children)
 		for i, child := range children {
 			// [childPos, childEnd) is unaugmented interval of child.
 			childPos := child.Pos()
@@ -94,14 +94,14 @@ func PathEnclosingInterval(root *ast.File, start, end token.Pos) (path []ast.Nod
 			if i > 0 {
 				augPos = children[i-1].End() // start of preceding whitespace
 			}
-			if i < l-1 {
-				nextChildPos := children[i+1].Pos()
-				// Does [start, end) lie between child and next child?
-				if start >= augEnd && end <= nextChildPos {
-					return false // inexact match
-				}
-				augEnd = nextChildPos // end of following whitespace
-			}
+			// if i < l-1 {
+			// 	nextChildPos := children[i+1].Pos()
+			// 	// Does [start, end) lie between child and next child?
+			// 	if start >= augEnd && end <= nextChildPos {
+			// 		return false // inexact match
+			// 	}
+			// 	augEnd = nextChildPos // end of following whitespace
+			// }
 
 			// fmt.Printf("\tchild %d: [%d..%d)\tcontains interval [%d..%d)?\n",
 			// 	i, augPos, augEnd, start, end) // debugging
