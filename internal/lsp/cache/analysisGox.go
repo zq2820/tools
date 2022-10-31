@@ -114,18 +114,51 @@ func (analysis *analysisJsx) analysisExpr(cursor *astutil.Cursor) bool {
 		}
 	case *ast.GoxExpr:
 		var id *ast.Ident 
+		var tagName string
+		var tag ast.Expr
 		if selectorExpr, ok := node.TagName.(*ast.SelectorExpr); ok {
 			id = selectorExpr.Sel
+			tagName = selectorExpr.String()
+			if selectorExpr.Sel.Name == "_" {
+				selectorExpr.Sel.Name = ""
+			}
+			tag = selectorExpr
 		} else if ident, ok := node.TagName.(*ast.Ident); ok {
 			id = ident
+			tagName = ident.String()
+			tag = ident
 		}
 
 		tagType := analysis.pkg.typesInfo.Uses[id]
-		_ = tagType
-		// propsType := analysis.getProps(tagType, node.TagName.End() + 2)
-		propsType := &ast.SelectorExpr{
-			X: &ast.Ident{Name: "react", NamePos: node.TagName.End() + 2},
-			Sel: &ast.Ident{Name: "DivProps", NamePos: node.TagName.End() + 2},
+		var propsType ast.Expr
+
+		if !types.IsHostElement(tagName) {
+			propsType = analysis.getProps(tagType, node.TagName.End() + 2)
+		} else {
+			shortTagName := id.String()
+			propsType = &ast.SelectorExpr{
+				X: &ast.Ident{
+					Name: "react",
+					NamePos: node.TagName.End() + 2,
+					Hidden: true,
+				},
+				Sel: &ast.Ident{
+					Name: shortTagName + "Props",
+					NamePos: node.TagName.End() + 2,
+					Hidden: true,
+				},
+			}
+			tag = &ast.SelectorExpr{
+				X: &ast.Ident{
+					Name: "react",
+					NamePos: node.TagName.Pos(),
+					Hidden: true,
+				},
+				Sel: &ast.Ident {
+					Name: shortTagName,
+					NamePos: node.TagName.Pos(),
+			 	},
+			}
 		}
 
 		propsDef := &ast.CompositeLit{
@@ -217,7 +250,7 @@ func (analysis *analysisJsx) analysisExpr(cursor *astutil.Cursor) bool {
 			}
 		}
 		cursor.Replace(&ast.CallExpr{
-			Fun: node.TagName,
+			Fun: tag,
 			Lparen: node.TagName.End(),
 			Args: append([]ast.Expr{
 				props,
@@ -229,7 +262,7 @@ func (analysis *analysisJsx) analysisExpr(cursor *astutil.Cursor) bool {
 	case *ast.BareWordsExpr:
 		if node.Value != "" {
 			replaceGox(cursor, &ast.BasicLit{
-				ValuePos: node.ValuePos,
+				ValuePos: node.ValuePos - 1,
 				Kind:     token.STRING,
 				Value:    fmt.Sprintf("\"%s\"", node.Value),
 			}, NotElement)
@@ -266,21 +299,26 @@ func (analysis *analysisJsx)getProps(obj types.Object, pos token.Pos) ast.Expr {
 		if tuples.Len() > 0 {
 			propsType, ok := tuples.At(0).Type().(*types.Pointer)
 			if ok {
-				propsTypeDef := propsType.Elem().(types.Object)
-				if propsTypeDef.Pkg().Path() == string(analysis.pkg.m.PkgPath) {
+				propsTypeDef := propsType.Elem().(*types.Named).Obj()
+				if propsTypeDef.Pkg().Path() == "myitcv.io/react" {
 					return &ast.SelectorExpr{
 						X: &ast.Ident{
-							Name: propsTypeDef.Pkg().Path(),
+							Name: propsTypeDef.Pkg().Name(),
 							NamePos: pos,
+							Hidden: true,
 						},
 						Sel: &ast.Ident{
 							Name: propsTypeDef.Name(),
 							NamePos: pos,
+							Hidden: true,
 						},
 					}
 				}
 			}
 		}
+		return nil
+	} else if typeName, ok := obj.(*types.TypeName); ok {
+		_ = typeName
 		return nil
 	} else {
 		return nil
