@@ -16,10 +16,8 @@ type ChildType int
 const (
 	NotElement ChildType = iota
 	NotElementSlice
-	HostElement
-	HostElementSlice
-	CustomElement
-	CustomElementSlice
+	Element
+	ElementSlice
 )
 
 var caseTitle = cases.Title(language.English, cases.NoLower)
@@ -113,7 +111,7 @@ func (analysis *analysisJsx) analysisExpr(cursor *astutil.Cursor) bool {
 			cursor.Replace(node.X)
 		}
 	case *ast.GoxExpr:
-		var id *ast.Ident 
+		var id *ast.Ident
 		var tagName string
 		var tag ast.Expr
 		if selectorExpr, ok := node.TagName.(*ast.SelectorExpr); ok {
@@ -132,56 +130,68 @@ func (analysis *analysisJsx) analysisExpr(cursor *astutil.Cursor) bool {
 		tagType := analysis.pkg.typesInfo.Uses[id]
 		var propsType ast.Expr
 
-		if !types.IsHostElement(tagName) {
-			propsType = analysis.getProps(tagType, node.TagName.End() + 2)
+		var isHostElement = types.IsHostElement(tagName)
+		if !isHostElement {
+			propsType = analysis.getProps(tagType, node.TagName.End()+2)
+			if typeId, ok := analysis.pkg.typesInfo.Uses[id]; ok {
+				if _, ok := typeId.Type().(*types.Signature); !ok {
+					tag = &ast.UnaryExpr{
+						X: &ast.CompositeLit{
+							Type:   tag,
+							Lbrace: node.TagName.Pos(),
+						},
+						Op: token.AND,
+					}
+				}
+			}
 		} else {
 			shortTagName := id.String()
 			propsType = &ast.SelectorExpr{
 				X: &ast.Ident{
-					Name: "react",
+					Name:    "react",
 					NamePos: node.TagName.End() + 2,
-					Hidden: true,
+					Hidden:  true,
 				},
 				Sel: &ast.Ident{
-					Name: shortTagName + "Props",
+					Name:    shortTagName + "Props",
 					NamePos: node.TagName.End() + 2,
-					Hidden: true,
+					Hidden:  true,
 				},
 			}
 			tag = &ast.SelectorExpr{
 				X: &ast.Ident{
-					Name: "react",
+					Name:    "react",
 					NamePos: node.TagName.Pos(),
-					Hidden: true,
+					Hidden:  true,
 				},
-				Sel: &ast.Ident {
-					Name: shortTagName,
+				Sel: &ast.Ident{
+					Name:    shortTagName,
 					NamePos: node.TagName.Pos(),
-			 	},
+				},
 			}
 		}
 
 		propsDef := &ast.CompositeLit{
-			Type: propsType,
+			Type:   propsType,
 			Lbrace: node.TagName.End(),
-			Elts: []ast.Expr{},
+			Elts:   []ast.Expr{},
 		}
 		props := &ast.UnaryExpr{
-			Op: token.AND,
-			X: propsDef,
+			Op:    token.AND,
+			X:     propsDef,
 			OpPos: node.TagName.End() + 1,
 		}
 
 		for _, attr := range node.Attrs {
 			propsDef.Elts = append(propsDef.Elts, &ast.KeyValueExpr{
-				Key: attr.Lhs,
+				Key:   attr.Lhs,
 				Value: attr.Rhs,
 				Colon: attr.Lhs.End(),
 			})
 		}
 		if len(node.Attrs) > 0 {
-			propsDef.Rbrace = node.Attrs[len(node.Attrs) - 1].End()
-			if node.Attrs[len(node.Attrs) - 1].IsEllipsis {
+			propsDef.Rbrace = node.Attrs[len(node.Attrs)-1].End()
+			if node.Attrs[len(node.Attrs)-1].IsEllipsis {
 				propsDef.Rbrace -= 4
 			}
 		} else {
@@ -190,34 +200,34 @@ func (analysis *analysisJsx) analysisExpr(cursor *astutil.Cursor) bool {
 
 		children := &ast.CallExpr{
 			Fun: &ast.Ident{
-				Name: "make",
+				Name:    "make",
 				NamePos: propsDef.Rbrace,
-				Hidden: true,
+				Hidden:  true,
 			},
 			Lparen: propsDef.Rbrace,
 			Args: []ast.Expr{
 				&ast.ArrayType{
 					Elt: &ast.SelectorExpr{
 						X: &ast.Ident{
-							Name: "react",
+							Name:    "react",
 							NamePos: propsDef.Rbrace,
-							Hidden: true,
+							Hidden:  true,
 						},
 						Sel: &ast.Ident{
-							Name: "Element",
+							Name:    "Element",
 							NamePos: propsDef.Rbrace,
-							Hidden: true,
+							Hidden:  true,
 						},
 					},
 				},
 				&ast.BasicLit{
-					Kind: token.INT,
-					Value: "0",
+					Kind:     token.INT,
+					Value:    "0",
 					ValuePos: propsDef.Rbrace,
 				},
 				&ast.BasicLit{
-					Kind: token.INT,
-					Value: "16",
+					Kind:     token.INT,
+					Value:    "16",
 					ValuePos: propsDef.Rbrace,
 				},
 			},
@@ -236,9 +246,9 @@ func (analysis *analysisJsx) analysisExpr(cursor *astutil.Cursor) bool {
 
 			children = &ast.CallExpr{
 				Fun: &ast.Ident{
-					Name: "append",
+					Name:    "append",
 					NamePos: propsDef.Rbrace - token.Pos(i),
-					Hidden: true,
+					Hidden:  true,
 				},
 				Lparen: propsDef.Rbrace - token.Pos(i),
 				Args: []ast.Expr{
@@ -246,19 +256,37 @@ func (analysis *analysisJsx) analysisExpr(cursor *astutil.Cursor) bool {
 					childDef,
 				},
 				Ellipsis: pos,
-				Rparen: child.End(),
+				Rparen:   child.End(),
 			}
 		}
-		cursor.Replace(&ast.CallExpr{
-			Fun: tag,
-			Lparen: node.TagName.End(),
-			Args: append([]ast.Expr{
-				props,
-			}, children),
-			Ellipsis: node.End() + 1,
-			Rparen: node.End(),
-			Element: node,
-		})
+
+		if isHostElement {
+			cursor.Replace(&ast.CallExpr{
+				Fun:    tag,
+				Lparen: node.TagName.End(),
+				Args: append([]ast.Expr{
+					props,
+				}, children),
+				Ellipsis: node.End() + 1,
+				Rparen:   node.End(),
+				Element:  node,
+			})
+		} else {
+			cursor.Replace(&ast.CallExpr{
+				Fun: &ast.SelectorExpr{
+					X:   &ast.Ident{Name: "react", NamePos: tag.Pos()},
+					Sel: &ast.Ident{Name: "CreateElement"},
+				},
+				Lparen: node.TagName.End(),
+				Args: append([]ast.Expr{
+					tag,
+					props,
+				}, children),
+				Ellipsis: node.End() + 1,
+				Rparen:   node.End(),
+				Element:  node,
+			})
+		}
 	case *ast.BareWordsExpr:
 		if node.Value != "" {
 			replaceGox(cursor, &ast.BasicLit{
@@ -276,16 +304,21 @@ func (analysis *analysisJsx) analysisExpr(cursor *astutil.Cursor) bool {
 
 func getJsxType(obj types.Type) ChildType {
 	kind := obj.Underlying()
-
 	switch result := kind.(type) {
 	case *types.Interface:
-		if result.Obj().Pkg().Name() == "core" && result.Obj().Name() == "Element" {
-			return HostElement
+		if resultObj := result.Obj(); resultObj != nil {
+			if resultObj.Pkg().Name() == "core" && resultObj.Name() == "Element" {
+				return Element
+			}
+		} else {
+			if obj.(*types.Named).Obj().Pkg().Name() == "core" && obj.(*types.Named).Obj().Name() == "Element" {
+				return Element
+			}
 		}
 	case *types.Slice:
 		elem := getJsxType(result.Elem())
-		if elem == HostElement {
-			return HostElementSlice
+		if elem == Element {
+			return ElementSlice
 		} else {
 			return NotElementSlice
 		}
@@ -293,32 +326,41 @@ func getJsxType(obj types.Type) ChildType {
 	return NotElement
 }
 
-func (analysis *analysisJsx)getProps(obj types.Object, pos token.Pos) ast.Expr {
+func (analysis *analysisJsx) getProps(obj types.Object, pos token.Pos) ast.Expr {
 	if funcType, ok := obj.(*types.Func); ok {
 		tuples := funcType.Type().(*types.Signature).Params()
 		if tuples.Len() > 0 {
 			propsType, ok := tuples.At(0).Type().(*types.Pointer)
 			if ok {
 				propsTypeDef := propsType.Elem().(*types.Named).Obj()
-				if propsTypeDef.Pkg().Path() == "myitcv.io/react" {
-					return &ast.SelectorExpr{
-						X: &ast.Ident{
-							Name: propsTypeDef.Pkg().Name(),
-							NamePos: pos,
-							Hidden: true,
-						},
-						Sel: &ast.Ident{
-							Name: propsTypeDef.Name(),
-							NamePos: pos,
-							Hidden: true,
-						},
-					}
+				return &ast.SelectorExpr{
+					X: &ast.Ident{
+						Name:    propsTypeDef.Pkg().Name(),
+						NamePos: pos,
+						Hidden:  true,
+					},
+					Sel: &ast.Ident{
+						Name:    propsTypeDef.Name(),
+						NamePos: pos,
+						Hidden:  true,
+					},
 				}
 			}
 		}
 		return nil
 	} else if typeName, ok := obj.(*types.TypeName); ok {
-		_ = typeName
+		if structType, ok := typeName.Type().Underlying().(*types.Struct); ok {
+			for i := structType.NumFields() - 1; i >= 0; i -- {
+				if named, ok := structType.Field(i).Type().(*types.Named); ok {
+					if (named.Obj().Name() == "ComponentDef") {
+						return &ast.SelectorExpr {
+							X: &ast.Ident{Name: named.TypeArgs().At(0).(*types.Named).Obj().Pkg().Name()},
+							Sel: &ast.Ident{Name: named.TypeArgs().At(0).(*types.Named).Obj().Name()},
+						}
+					}
+				}
+			}
+		}
 		return nil
 	} else {
 		return nil
@@ -326,7 +368,7 @@ func (analysis *analysisJsx)getProps(obj types.Object, pos token.Pos) ast.Expr {
 }
 
 func replaceGox(cursor *astutil.Cursor, expr ast.Expr, childType ChildType) {
-	if childType == HostElement {
+	if childType == Element {
 		switch node := expr.(type) {
 		case *ast.Ident:
 			node.Element = cursor.Node()
@@ -342,50 +384,50 @@ func replaceGox(cursor *astutil.Cursor, expr ast.Expr, childType ChildType) {
 			node.Element = cursor.Node()
 		}
 		cursor.Replace(expr)
-	} else if childType == HostElementSlice {		
+	} else if childType == ElementSlice {
 		if goxExpr, ok := cursor.Node().(*ast.GoExpr); ok {
 			goxExpr.IsSlice = true
 		}
 	} else if childType == NotElement {
 		cursor.Replace(&ast.CallExpr{
 			Fun: &ast.SelectorExpr{
-				X:   &ast.Ident{
-					Name: "react",
+				X: &ast.Ident{
+					Name:    "react",
 					NamePos: cursor.Node().Pos(),
-					Hidden: true,
+					Hidden:  true,
 				},
 				Sel: &ast.Ident{
-					Name: "S",
+					Name:    "S",
 					NamePos: cursor.Node().Pos(),
-					Hidden: true,
+					Hidden:  true,
 				},
 			},
 			Lparen: cursor.Node().Pos(),
 			Args: []ast.Expr{
 				expr,
 			},
-			Rparen: cursor.Node().End(),
+			Rparen:  cursor.Node().End(),
 			Element: cursor.Node(),
 		})
 	} else {
 		cursor.Replace(&ast.CallExpr{
 			Fun: &ast.SelectorExpr{
-				X:   &ast.Ident{
-					Name: "react",
+				X: &ast.Ident{
+					Name:    "react",
 					NamePos: cursor.Node().Pos(),
-					Hidden: true,
+					Hidden:  true,
 				},
 				Sel: &ast.Ident{
-					Name: "Sprintln",
+					Name:    "Sprintln",
 					NamePos: cursor.Node().Pos(),
-					Hidden: true,
+					Hidden:  true,
 				},
 			},
 			Lparen: cursor.Node().Pos(),
 			Args: []ast.Expr{
 				expr,
 			},
-			Rparen: cursor.Node().End(),
+			Rparen:  cursor.Node().End(),
 			Element: cursor.Node(),
 		})
 	}
